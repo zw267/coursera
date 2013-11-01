@@ -1,3 +1,7 @@
+/* P0102: Insert a substr to a sub right after the char
+ * of the greatest ACSII code.
+ * */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
