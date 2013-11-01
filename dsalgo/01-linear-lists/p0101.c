@@ -6,11 +6,9 @@
 #include <limits.h>
 
 #define MAX_LEN 300
-#define DIGIT_LEN 5
+#define DIGIT_LEN 10
 
 /* Should be placed in a speparated header file */
-typedef int bool;
-
 struct Term;
 typedef struct Term *PtrToTerm;
 typedef PtrToTerm Polynomial;
@@ -35,71 +33,72 @@ struct Term {
 int main() {
    int n = 0;
 
-   scanf("%d\n", &n);
-   ListOfPoly inputs = (ListOfPoly) malloc(sizeof(struct Term) * n);
-   int line = 0;
-   char c;
+   scanf("%d", &n);
+   if (n < 1 || n > 99) {
+      printf("n should be within (1, 100)\n");
+      return 1;
+   }
+
+   ListOfPoly inputs = (ListOfPoly) malloc(sizeof(struct Term) * (n * 2));
+   int lineCount = 0;
    int numCount = 0;
    int coefficient;
    int exponent;
-   char num[DIGIT_LEN];
-   int i = 0;
+   int k;
    Polynomial poly = initPoly();
    PtrToTerm term;
-   while ((c = getchar()) != EOF && line < n) {
-      if (c == ' ') {
-         num[i] = '\0';
-         i = 0;
+
+   for (lineCount = 0; lineCount < 2 * n; lineCount++) {
+      while (1) {
+         scanf("%d", &k);
          if (numCount % 2 == 0) {
-            coefficient = atoi(num);
-            printf("coeff: %d ", coefficient);
+            coefficient = k;
+            numCount++;
          }
          else {
-            exponent = atoi(num);
-            printf("exp: %d\n", exponent);
-            term = createTerm(coefficient, exponent);
-            insertTerm(poly, term);
+            if (k >= 0) {
+               exponent = k;
+               numCount++;
+               term = createTerm(coefficient, exponent);
+               insertTerm(poly, term);
+            }
+            else 
+               break;
          }
-         numCount++;
       }
-      else if (c == '\n') {
-         num[i] = '\0';
-         exponent = atoi(num);
-         term = createTerm(coefficient, exponent);
-         printf("exp: %d\n", exponent);
-         insertTerm(poly, term);
-         inputs[line++] = poly;
-         // reset env vars
-         i = 0;
-         numCount = 0;
-         poly = initPoly();
-      }
-      else {
-        num[i++] = c;
-      }
-   }
 
+      numCount = 0;
+      coefficient = 0;
+      inputs[lineCount] = poly;
+      //destroyPoly(poly);
+
+      if (lineCount < 2 * n - 1)
+         poly = initPoly();
+
+   }
 
    int j;
+   ListOfPoly outputs = (ListOfPoly) malloc(sizeof(struct Term) * n);
    for (j = 0; j < n; j++) {
-      printPoly(inputs[j]);
-   }
-
-   ListOfPoly outputs = (ListOfPoly) malloc(sizeof(struct Term) * (n / 2));
-   for (j = 0; j < n ; j += 2) {
-      outputs[j] = addTwo(inputs[j], inputs[j + 1]);
+      outputs[j] = addTwo(inputs[2 * j], inputs[2 * j + 1]);
    }
    
-   printResult(outputs, n / 2);
+   printResult(outputs, n);
 
    return 0;
 }
+
 
 void printPoly(Polynomial poly) {
    poly = poly->next;
 
    while (poly != NULL) {
-     printf("[%d %d] ", poly->coefficient, poly->exponent);
+     if (poly->exponent > 0) {
+        if (poly->next == NULL)
+           printf("[ %d %d ]", poly->coefficient, poly->exponent);
+        else
+           printf("[ %d %d ] ", poly->coefficient, poly->exponent);
+     }
      poly = poly->next;
    }
 
@@ -114,8 +113,13 @@ void printResult(ListOfPoly list, int n) {
       poly = list[i];
       poly = poly->next;
       while (poly != NULL) {
-         printf("[%d %d] ", poly->coefficient, poly->exponent);
-         poly = poly->next;
+        if (poly->exponent >= 0 && poly->coefficient != 0) {
+           if (poly->next == NULL)
+              printf("[ %d %d ]", poly->coefficient, poly->exponent);
+           else
+              printf("[ %d %d ] ", poly->coefficient, poly->exponent);
+        }
+        poly = poly->next;
       }
       printf("\n");
    }
@@ -136,8 +140,8 @@ Polynomial initPoly() {
       printf("Fatal error: out of space!\n");
    }
    else {
-      poly->coefficient = INT_MIN;
-      poly->exponent = INT_MIN;
+      poly->coefficient = INT_MAX;
+      poly->exponent = INT_MAX;
       poly->next = NULL;
    }
    return poly;
@@ -177,15 +181,20 @@ void insertTerm(Polynomial poly, PtrToTerm term) {
    // skip the head of the polynomial
    //poly = poly->next;
    while (poly->next != NULL) {
-      if (poly->exponent < term->exponent
-          && poly->next->exponent > term->exponent)
+      if (poly->exponent >= term->exponent
+          && poly->next->exponent < term->exponent)
         break;
 
       poly = poly->next;
    }
 
-   term->next = poly->next;
-   poly->next = term;
+   if (poly->exponent == term->exponent)
+      poly->coefficient += term->coefficient;
+   else {
+      term->next = poly->next;
+      poly->next = term;
+   }
+
 
    /*
    if (poly->next == NULL) poly->next = term;
@@ -207,13 +216,13 @@ Polynomial addTwo(Polynomial a, Polynomial b) {
 
    int coefficient, exponent;
    while (pa != NULL && pb != NULL) {
-      if (pa->exponent > pb->exponent) {
+      if (pa->exponent < pb->exponent) {
          //pb = pb->next;
          coefficient = pb->coefficient;
          exponent = pb->exponent;
          pb = pb->next;
       }
-      else if (pa->exponent < pb->exponent) {
+      else if (pa->exponent > pb->exponent) {
          coefficient = pa->coefficient;
          exponent = pa->exponent;
          pa = pa->next;
