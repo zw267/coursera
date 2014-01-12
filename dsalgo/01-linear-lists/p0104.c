@@ -24,6 +24,11 @@ int placeApple(int numOfApple, int numOfPlate) {
   else if (numOfApple < 0)
     return 0;
   else
+    /* Since the plates are identical, for a given number of plates and apples,
+     * the sub-cases can be divided into
+     * 1) there is one plate empty [placeApple(#apple, #plate - 1)]
+     * 2) none of the plates is empty [placeApple(#apple - #plate, #plate)]
+     * */
     return placeApple(numOfApple, numOfPlate - 1)
       + placeApple(numOfApple - numOfPlate, numOfPlate);
 }
